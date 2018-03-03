@@ -84,7 +84,7 @@ def convolve_2d(img, kernel):
     return G
     # TODO-BLOCK-END
 
-def gaussian_blur_kernel_2d(sigma, width, height):
+def gaussian_blur_kernel_2d(sigma, height, width):
     '''Return a Gaussian blur kernel of the given dimensions and with the given
     sigma. Note that width and height are different.
 
@@ -96,7 +96,7 @@ def gaussian_blur_kernel_2d(sigma, width, height):
         height: The height of the kernel.
 
     Output:
-        Return a kernel of dimensions width x height such that convolving it
+        Return a kernel of dimensions height x width such that convolving it
         with an image results in a Gaussian-blurred image.
     '''
     # TODO-BLOCK-BEGIN
