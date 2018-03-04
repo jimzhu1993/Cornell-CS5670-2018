@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 import scipy
 from scipy import ndimage, spatial
+import matplotlib.pyplot as plt
 
 import transformations
 
@@ -120,7 +121,16 @@ class HarrisKeypointDetector(KeypointDetector):
         # for direction on how to do this. Also compute an orientation
         # for each pixel and store it in 'orientationImage.'
         # TODO-BLOCK-BEGIN
-        raise Exception("TODO in features.py not implemented")
+
+        dx = ndimage.sobel(srcImage, axis=0, mode='reflect')
+        dy = ndimage.sobel(srcImage, axis=1, mode='reflect')
+
+        Ixp2 = ndimage.gaussian_filter(dx * dx, sigma=0.5)
+        IxpIyp = ndimage.gaussian_filter(dx * dy, sigma=0.5)
+        Iyp2 = ndimage.gaussian_filter(dy * dy, sigma=0.5)
+
+        harrisImage = Ixp2 * Iyp2 - IxpIyp ** 2 - 0.1 * (Ixp2 + Iyp2) ** 2
+        orientationImage = np.arctan2(dx, dy) * 180 / np.pi
         # TODO-BLOCK-END
 
         # Save the harris image as harris.png for the website assignment
@@ -143,7 +153,8 @@ class HarrisKeypointDetector(KeypointDetector):
 
         # TODO 2: Compute the local maxima image
         # TODO-BLOCK-BEGIN
-        raise Exception("TODO in features.py not implemented")
+        local_max = ndimage.maximum_filter(harrisImage, size=7)
+        destImage = harrisImage == local_max
         # TODO-BLOCK-END
 
         return destImage
@@ -191,7 +202,10 @@ class HarrisKeypointDetector(KeypointDetector):
                 # f.angle to the orientation in degrees and f.response to
                 # the Harris score
                 # TODO-BLOCK-BEGIN
-                raise Exception("TODO in features.py not implemented")
+                f.size = 10
+                f.pt = (x, y)
+                f.angle = orientationImage[y, x]
+                f.response = harrisImage[y, x]
                 # TODO-BLOCK-END
 
                 features.append(f)
@@ -255,7 +269,7 @@ class SimpleFeatureDescriptor(FeatureDescriptor):
             # sampled centered on the feature point. Store the descriptor
             # as a row-major vector. Treat pixels outside the image as zero.
             # TODO-BLOCK-BEGIN
-            raise Exception("TODO in features.py not implemented")
+            desc[i, :] = np.pad(grayImage, (2, 2), 'constant')[y:y + 5, x:x + 5].reshape(1, -1)
             # TODO-BLOCK-END
 
         return desc
@@ -291,7 +305,18 @@ class MOPSFeatureDescriptor(FeatureDescriptor):
             transMx = np.zeros((2, 3))
 
             # TODO-BLOCK-BEGIN
-            raise Exception("TODO in features.py not implemented")
+            MT1 = np.array([[1, 0, -f.pt[0]], [0, 1, -f.pt[1]], [0, 0, 1]])
+
+            MR = np.array(
+                [[math.cos(-f.angle / 180 * np.pi), -math.sin(-f.angle / 180 * np.pi), 0],
+                 [math.sin(-f.angle / 180 * np.pi), math.cos(-f.angle / 180 * np.pi), 0],
+                 [0, 0, 1]])
+
+            MS = np.array([[0.2, 0, 0], [0, 0.2, 0], [0, 0, 1]])
+
+            MT2 = np.array([[1, 0, 4], [0, 1, 4], [0, 0, 1]])
+
+            transMx = np.dot(np.dot(np.dot(MT2, MS), MR), MT1)[:2, :3]
             # TODO-BLOCK-END
 
             # Call the warp affine function to do the mapping
@@ -303,9 +328,16 @@ class MOPSFeatureDescriptor(FeatureDescriptor):
             # variance. If the variance is zero then set the descriptor
             # vector to zero. Lastly, write the vector to desc.
             # TODO-BLOCK-BEGIN
-            raise Exception("TODO in features.py not implemented")
-            # TODO-BLOCK-END
+            patch = destImage[:windowSize, :windowSize]
+            zerofy_patch = patch - np.mean(patch)
 
+            if np.std(zerofy_patch) < 0.00001:
+                desc[i, :] = np.zeros(zerofy_patch.shape).reshape(1, -1)
+            else:
+                zerofy_patch = zerofy_patch / np.std(zerofy_patch)
+                desc[i, :] = zerofy_patch.reshape(1, -1)
+
+            # TODO-BLOCK-END
         return desc
 
 
