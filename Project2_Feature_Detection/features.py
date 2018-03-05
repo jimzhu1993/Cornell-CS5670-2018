@@ -331,7 +331,7 @@ class MOPSFeatureDescriptor(FeatureDescriptor):
             patch = destImage[:windowSize, :windowSize]
             zerofy_patch = patch - np.mean(patch)
 
-            if np.std(zerofy_patch) < 0.00001:
+            if np.std(zerofy_patch) < 0.000001:
                 desc[i, :] = np.zeros(zerofy_patch.shape).reshape(1, -1)
             else:
                 zerofy_patch = zerofy_patch / np.std(zerofy_patch)
@@ -461,7 +461,14 @@ class SSDFeatureMatcher(FeatureMatcher):
         # Note: multiple features from the first image may match the same
         # feature in the second image.
         # TODO-BLOCK-BEGIN
-        raise Exception("TODO in features.py not implemented")
+        pairwise_dis = spatial.distance.cdist(desc1, desc2)
+        for i in range(len(pairwise_dis)):
+            match = cv2.DMatch()
+            match.queryIdx = i
+            match.trainIdx = np.argmin(pairwise_dis)
+            match.distance = pairwise_dis[i][match.trainIdx]
+            matches.append(match)
+        # raise Exception("TODO in features.py not implemented")
         # TODO-BLOCK-END
 
         return matches
@@ -503,7 +510,15 @@ class RatioFeatureMatcher(FeatureMatcher):
         # feature in the second image.
         # You don't need to threshold matches in this function
         # TODO-BLOCK-BEGIN
-        raise Exception("TODO in features.py not implemented")
+        pairwise_dis = spatial.distance.cdist(desc1, desc2)
+        for i in range(len(pairwise_dis)):
+            sorting_id = pairwise_dis[i].argsort()
+            match = cv2.DMatch()
+            match.queryIdx = i
+            match.trainIdx = sorting_id[0]
+            match.distance = pairwise_dis[i][match.queryIdx] / pairwise_dis[i][match.trainIdx]
+            matches.append(match)
+        # raise Exception("TODO in features.py not implemented")
         # TODO-BLOCK-END
 
         return matches
