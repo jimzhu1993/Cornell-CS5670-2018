@@ -516,7 +516,7 @@ class RatioFeatureMatcher(FeatureMatcher):
             match = cv2.DMatch()
             match.queryIdx = i
             match.trainIdx = sorting_id[0]
-            match.distance = pairwise_dis[i][match.queryIdx] / pairwise_dis[i][match.trainIdx]
+            match.distance = pairwise_dis[i][sorting_id[0]] / pairwise_dis[i][sorting_id[1]]
             matches.append(match)
         # raise Exception("TODO in features.py not implemented")
         # TODO-BLOCK-END
