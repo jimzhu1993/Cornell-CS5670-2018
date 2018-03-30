@@ -127,30 +127,23 @@ def alignPair(f1, f2, matches, m, nRANSAC, RANSACthresh):
     #least_squares_fit.
     #TODO-BLOCK-BEGIN
 
-    max_inlier_indices = []
+    max_inliers_indices = []
 
     for i in range(nRANSAC):
         if m == eTranslate:
             a_choice = np.random.randint(0, len(matches))
-            while(matches[a_choice].distance>= RANSACthresh):
-                a_choice = np.random.randint(0, len(matches))
             H = np.eye(3)
-            H[0, 2] = f2[matches[a_choice].trainIdex].pt[0] - f1[matches[a_choice].queryIdex].pt[0]
-            H[1, 2] = f2[matches[a_choice].trainIdex].pt[1] - f1[matches[a_choice].queryIdex].pt[1]
+            H[0, 2] = f2[matches[a_choice].trainIdx].pt[0] - f1[matches[a_choice].queryIdx].pt[0]
+            H[1, 2] = f2[matches[a_choice].trainIdx].pt[1] - f1[matches[a_choice].queryIdx].pt[1]
         else:
-            choice = []
-            while len(choice) < 4:
-                a_choice = np.random.randint(0, len(matches))
-                if matches[a_choice].distance < RANSACthresh:
-                    choice.append(a_choice)
+            choice = np.random.randint(0, len(matches), 4)
             H = computeHomography(f1, f2, [matches[i] for i in choice])
 
-        inlier_indices = getInliers(f1, f2, matches, H, RANSACthresh)
-        if len(inlier_indices) > len(max_inlier_indices):
-            max_inlier_indices = inlier_indices
+        inliers_indices = getInliers(f1, f2, matches, H, RANSACthresh)
+        if len(inliers_indices) > len(max_inliers_indices):
+            max_inliers_indices = inliers_indices
 
-
-    M = leastSquaresFit(f1, f2, matches, m, max_inlier_indices)
+    M = leastSquaresFit(f1, f2, matches, m, max_inliers_indices)
 
     # raise Exception("TODO in alignment.py not implemented")
     #TODO-BLOCK-END
@@ -251,9 +244,8 @@ def leastSquaresFit(f1, f2, matches, m, inlier_indices):
             #over all inliers.
             #TODO-BLOCK-BEGIN
 
-            M_temp = computeHomography(f1, f2, matches[i])
-            u += M_temp[0, 2]
-            v += M_temp[1, 2]
+            u += f2[matches[i].trainIdx].pt[0] - f1[matches[i].queryIdx].pt[0]
+            v += f2[matches[i].trainIdx].pt[1] - f1[matches[i].queryIdx].pt[1]
 
             # raise Exception("TODO in alignment.py not implemented")
             #TODO-BLOCK-END
@@ -284,4 +276,3 @@ def leastSquaresFit(f1, f2, matches, m, inlier_indices):
         raise Exception("Error: Invalid motion model.")
 
     return M
-

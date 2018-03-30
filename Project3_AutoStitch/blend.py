@@ -31,20 +31,25 @@ def imageBoundingBox(img, M):
     #TODO-BLOCK-BEGIN
 
     width, height = img.shape[1] - 1, img.shape[0] - 1
-    zuo_shang = np.array([[0, 0, 1]]).T
-    you_shang = np.array([[width, 0, 1]]).T
-    zuo_xia = np.array([[0, height, 1]]).T
-    you_xia = np.array([[width, height, 1]]).T
+    top_left = np.array([[0, 0, 1]]).T
+    top_right = np.array([[width, 0, 1]]).T
+    bottom_left = np.array([[0, height, 1]]).T
+    bottom_right = np.array([[width, height, 1]]).T
 
-    new_zuo_shang = np.dot(M, zuo_shang).T[0]
-    new_you_shang = np.dot(M, you_shang).T[0]
-    new_zuo_xia = np.dot(M, zuo_xia).T[0]
-    new_you_xia = np.dot(M, you_xia).T[0]
+    new_top_left = np.dot(M, top_left).T[0]
+    new_top_right = np.dot(M, top_right).T[0]
+    new_bottom_left = np.dot(M, bottom_left).T[0]
+    new_bottom_right = np.dot(M, bottom_right).T[0]
 
-    minX = min(new_zuo_shang[0], new_you_shang[0], new_zuo_xia[0], new_you_xia[0])
-    maxX = max(new_zuo_shang[0], new_you_shang[0], new_zuo_xia[0], new_you_xia[0])
-    minY = min(new_zuo_shang[1], new_you_shang[1], new_zuo_xia[1], new_you_xia[1])
-    maxY = max(new_zuo_shang[1], new_you_shang[1], new_zuo_xia[1], new_you_xia[1])
+    new_top_left /= new_top_left[2]
+    new_top_right /= new_top_right[2]
+    new_bottom_left /= new_bottom_left[2]
+    new_bottom_right /= new_bottom_right[2]
+
+    minX = min(new_top_left[0], new_top_right[0], new_bottom_left[0], new_bottom_right[0])
+    maxX = max(new_top_left[0], new_top_right[0], new_bottom_left[0], new_bottom_right[0])
+    minY = min(new_top_left[1], new_top_right[1], new_bottom_left[1], new_bottom_right[1])
+    maxY = max(new_top_left[1], new_top_right[1], new_bottom_left[1], new_bottom_right[1])
 
     # raise Exception("TODO in blend.py not implemented")
     #TODO-BLOCK-END
@@ -66,14 +71,16 @@ def accumulateBlend(img, acc, M, blendWidth):
     # BEGIN TODO 10
     # Fill in this routine
     #TODO-BLOCK-BEGIN
-    height, width = img.shape
+    height, width, _ = img.shape
     min_x, min_y, max_x, max_y = imageBoundingBox(img, M)
+
+    # new_pic = cv2.warpPerspective(img, M, (width, height), flags=cv2.INTER_NEAREST + cv2.WARP_INVERSE_MAP)
 
     for i in range(min_x, max_x):
         for j in range(min_y, max_y):
-            p_bounding = np.array(i, j, 1).T
-            p_img = np.dot(np.inv(M), p_bounding)[0]
-            p_img_x, p_img_y = min(p_img[0] / p_img[2], width-1), min(p_img[1] / p_img[2], height-1)
+            p_bounding = np.array([i, j, 1]).T
+            p_img = np.dot(np.linalg.inv(M), p_bounding)
+            p_img_x, p_img_y = p_img[0] / p_img[2], p_img[1] / p_img[2]
 
             # the point mapped back is within image bound
             if p_img_x >= 0 and p_img_x <= width - 1 and p_img_y >= 0 and p_img_y <= height - 1:
@@ -89,10 +96,11 @@ def accumulateBlend(img, acc, M, blendWidth):
 
                 # black pixels
                 if sum(img[int(p_img_y), int(p_img_x)]) == 0:
-                    continue
-                else:
-                    for k in range(3):
-                        acc[j, i, k] += img[int(p_img_y), int(p_img_x), k] * weight
+                    weight = 0.0
+
+                for k in range(3):
+                    acc[j, i, k] += img[int(p_img_y-1), int(p_img_x), k] * weight
+                acc[j, i, 3] += weight
 
     # raise Exception("TODO in blend.py not implemented")
     #TODO-BLOCK-END
@@ -110,13 +118,13 @@ def normalizeBlend(acc):
     # BEGIN TODO 11
     # fill in this routine..
     #TODO-BLOCK-BEGIN
-    height, width = acc.shape
+    height, width, _ = acc.shape
     img = np.zeros((height, width, 3))
     for i in range(width):
         for j in range(height):
             if acc[j, i, 3] > 0:
                 for k in range(3):
-                    img[j, i, k] = int(acc[j, i, k]) / acc[j, j, 3]
+                    img[j, i, k] = int(acc[j, i, k] / acc[j, i, 3])
             else:
                 for k in range(3):
                     img[j, i, k] = 0
@@ -265,7 +273,7 @@ def blendImages(ipv, blendWidth, is360=False, A_out=None):
     #TODO-BLOCK-BEGIN
 
     if is360 == True:
-        A = computeDrift(x_init, y_init, x_final, y_final, outputWidth)
+        A = computeDrift(x_init, y_init, x_final, y_final, width)
 
     # raise Exception("TODO in blend.py not implemented")
     #TODO-BLOCK-END
